@@ -47,6 +47,9 @@ process_dss_output <- function(file) {
 
 calsim3_data <- map_df(list.files("data-raw/calsim3/", pattern = ".xlsx", full.names = TRUE), process_dss_output)
 
+# LTO action 5 scenario
+action_5 <- readr::read_rds("data-raw/calsim_3_action_5/action_5.rds")
+
 
 need_split_habitat <- cvpia_nodes$calsim_habitat_flow |> str_detect(', ')
 habitat_split <- cvpia_nodes$calsim_habitat_flow[need_split_habitat] |> str_split(', ') |> flatten_chr()
@@ -206,6 +209,8 @@ flows_cfs <- list(biop_2008_2009 = flows_cfs_2008_2009,
                   LTO_12a = lto_calsim3_flows,
                   LTO_12a_eff_dy = LTO_12a_eff_dy
 )
+# LTO action 5 scenario
+flows_cfs$action_5 <- action_5$flows_cfs
 
 # Write flow cfs data object
 usethis::use_data(flows_cfs, overwrite = TRUE)
@@ -274,6 +279,8 @@ bypass_flows <- list(biop_2008_2009 = bypass_2008_2009,
 )
 
 assertthat::are_equal(names(run_of_river), names(lto_calsim3_bypass_flows))
+# LTO action 5 scenario
+# bypass_flows$action_5 <- action_5$bypass_flows # TODO: not yet available
 
 usethis::use_data(bypass_flows, overwrite = TRUE)
 
@@ -527,6 +534,8 @@ total_diverted <- list(biop_2008_2009 = diversion_2008_2009, # has moke
 )
 
 assertthat::are_equal(dimnames(diversion_run_of_river), dimnames(lto_total_diverted_final))
+# LTO action 5 scenario
+total_diverted$action_5 <- action_5$total_diverted
 
 usethis::use_data(total_diverted, overwrite = TRUE)
 
@@ -722,6 +731,8 @@ proportion_diverted <- list(biop_2008_2009 = prop_diverted_2008_2009,
 )
 
 assertthat::are_equal(dimnames(prop_diverted_run_of_river), dimnames(lto_proportion_diverted_final))
+# LTO action 5 scenario
+proportion_diverted$action_5 <- action_5$proportion_diverted
 
 usethis::use_data(proportion_diverted, overwrite = TRUE)
 
@@ -773,6 +784,8 @@ mean_flow <- list(biop_2008_2009 = mean_flow_2008_2009,
                   LTO_12a_eff_dy = mean_flow_LTO_12a_eff_dy)
 
 assertthat::are_equal(dimnames(mean_flow_eff), dimnames(mean_flow_lto12a))
+# LTO action 5 scenario
+# mean_flow$action_5 <- action_5$mean_flow # TODO: not yet available
 
 usethis::use_data(mean_flow, overwrite = TRUE)
 
@@ -927,6 +940,8 @@ upper_sacramento_flows <- list(biop_2008_2009 = upper_sacramento_flows_2008_2009
 
 
 assertthat::are_equal(dimnames(lto_12a_upper_sacramento_flows), dimnames(upper_sac_flows_eff))
+# LTO action 5 scenario
+upper_sacramento_flows$action_5 <- action_5$upper_sacramento_flows
 
 usethis::use_data(upper_sacramento_flows, overwrite = TRUE)
 
@@ -966,6 +981,8 @@ rownames(san_joaquin_flows_LTO_12a_eff_dy) <- month.abb
 
 san_joaquin_flows <- list(eff = san_joaquin_flows_eff,
                           LTO_12a_eff_dy = san_joaquin_flows_LTO_12a_eff_dy)
+# LTO action 5 scenario
+san_joaquin_flows$action_5 <- action_5$san_joaquin_flows
 
 usethis::use_data(san_joaquin_flows, overwrite = TRUE)
 
@@ -1034,6 +1051,8 @@ proportion_flow_natal <- list(biop_2008_2009 = proportion_flow_natal_2008_2009,
                               LTO12a = proportion_flow_natal_lto12a)
 
 assertthat::are_equal(dimnames(proportion_flow_natal_2008_2009), dimnames(proportion_flow_natal_eff))
+# LTO action 5 scenario
+proportion_flow_natal$action_5 <- action_5$proportion_flow_natal
 
 usethis::use_data(proportion_flow_natal, overwrite = TRUE)
 
@@ -1088,6 +1107,8 @@ proportion_pulse_flows <- list(biop_2008_2009 = proportion_pulse_flows_2008_2009
                               LTO_12a_eff_dy = proportion_pulse_flows_lto_12a_eff_dy)
 
 assertthat::are_equal(dimnames(proportion_pulse_flows_2008_2009), dimnames(proportion_pulse_flows_lto_12a))
+# LTO action 5 scenario
+proportion_pulse_flows$action_5 <- action_5$proportion_pulse_flows
 
 usethis::use_data(proportion_pulse_flows, overwrite = TRUE)
 
@@ -1167,6 +1188,9 @@ delta_cross_channel_closed <- list(biop_2008_2009 = delta_cross_channel_closed_2
                                    biop_itp_2018_2019 = delta_cross_channel_closed_2018_2019,
                                    run_of_river = delta_cross_channel_closed_run_of_river,
                                    LTO_12a = delta_cross_channel_closed_2018_2019)
+
+# LTO action 5 scenario
+# delta_cross_channel_closed$action_5 <- action_5$delta_cross_channel_closed # TODO: not yet available
 
 usethis::use_data(delta_cross_channel_closed, overwrite = TRUE)
 
@@ -1264,6 +1288,8 @@ delta_flows <- list(biop_2008_2009 = delta_flows_2008_2009,
                     LTO_12a = lto_12a_delta_flows)
 
 assertthat::are_equal(dimnames(lto_12a_delta_flows), dimnames(delta_flows_run_of_river))
+# LTO action 5 scenario
+delta_flows$action_5 <- action_5$delta_flows
 
 usethis::use_data(delta_flows, overwrite = TRUE)
 
@@ -1303,6 +1329,8 @@ delta_inflow <- list(biop_2008_2009 = delta_inflows_2008_2009,
                     LTO_12a = delta_inflows_lto_12a)
 
 assertthat::are_equal(dimnames(delta_inflows_lto_12a), dimnames(delta_inflows_run_of_river))
+# LTO action 5 scenario
+delta_inflow$action_5 <- action_5$delta_inflow
 
 usethis::use_data(delta_inflow, overwrite = TRUE)
 
@@ -1339,6 +1367,8 @@ delta_proportion_diverted <- list(biop_2008_2009 = delta_proportion_diverted_200
                                   biop_itp_2018_2019 = delta_proportion_diverted_2019_biop_itp,
                                   run_of_river = delta_proportion_diverted_run_of_river,
                                   LTO_12a = delta_proportion_diverted_lto_12a)
+# LTO action 5 scenario
+delta_proportion_diverted$action_5 <- action_5$delta_proportion_diverted
 
 usethis::use_data(delta_proportion_diverted, overwrite = TRUE)
 
@@ -1377,6 +1407,8 @@ delta_total_diverted <- list(biop_2008_2009 = delta_total_diverted_2008_2009,
                              biop_itp_2018_2019 = delta_total_diverted_2019_biop_itp,
                              run_of_river = delta_total_diverted_run_of_river,
                              LTO_12a = delta_total_diverted_lto_12a)
+# LTO action 5 scenario
+delta_total_diverted$action_5 <- action_5$delta_total_diverted
 
 usethis::use_data(delta_total_diverted, overwrite = TRUE)
 
@@ -1441,6 +1473,8 @@ proportion_flow_bypasses <- list(biop_2008_2009 = proportion_flow_bypasses_2008_
                                  biop_itp_2018_2019 = proportion_flow_bypasses_2019_biop_itp,
                                  run_of_river = proportion_flow_bypasses_run_of_river,
                                  LTO_12a = lto_12a_proportion_flow_bypass)
+# LTO action 5 scenario
+proportion_flow_bypasses$action_5 <- action_5$proportion_flow_bypasses
 
 usethis::use_data(proportion_flow_bypasses, overwrite = TRUE)
 
@@ -1484,6 +1518,8 @@ gates_overtopped <- list(biop_2008_2009 = gates_overtopped_2008_2009,
                          biop_itp_2018_2019 = gates_overtopped_2019_biop_itp,
                          run_of_river = gates_overtopped_run_of_river,
                          LTO_12a = gates_overtopped_lto_12a)
+# LTO action 5 scenario
+gates_overtopped$action_5 <- action_5$gates_overtopped
 
 usethis::use_data(gates_overtopped, overwrite = TRUE)
 
@@ -1547,7 +1583,8 @@ wilkins_flow <- list(biop_2008_2009 = wilkins_flow_2008_2009,
                      biop_itp_2018_2019 = wilkins_flow_2019_biop_itp,
                      run_of_river = wilkins_flow_run_of_river,
                      LTO_12a = wilkins_flow_lto_12a)
-
+# LTO action 5 scenario
+# wilkins_flow$action_5 <- action_5$wilkins_flow # TODO: not yet available
 
 usethis::use_data(wilkins_flow, overwrite = TRUE)
 
@@ -1597,6 +1634,8 @@ freeport_flow <- list(biop_2008_2009 = freeport_flow_2008_2009,
                       biop_itp_2018_2019 = freeport_flow_2019_biop_itp,
                       run_of_river = freeport_flow_run_of_river,
                       LTO_12a = freeport_flow_lto_12a)
+# LTO action 5 scenario
+freeport_flow$action_5 <- action_5$freeport_flow
 
 usethis::use_data(freeport_flow, overwrite = TRUE)
 
@@ -1647,6 +1686,8 @@ vernalis_flow <- list(biop_2008_2009 = vernalis_flow_2008_2009,
                       biop_itp_2018_2019 = vernalis_flow_2019_biop_itp,
                       run_of_river = vernalis_flow_run_of_river,
                       LTO_12a = vernalis_flow_lto_12a)
+# LTO action 5 scenario
+vernalis_flow$action_5 <- action_5$vernalis_flow
 
 usethis::use_data(vernalis_flow, overwrite = TRUE)
 
@@ -1696,6 +1737,8 @@ stockton_flow <- list(biop_2008_2009 = stockton_flow_2008_2009,
                       biop_itp_2018_2019 = stockton_flow_2019_biop_itp,
                       run_of_river = stockton_flow_run_of_river,
                       LTO_12a = stockton_flow_lto_12a)
+# LTO action 5 scenario
+stockton_flow$action_5 <- action_5$stockton_flow
 
 usethis::use_data(stockton_flow, overwrite = TRUE)
 
@@ -1747,6 +1790,8 @@ cvp_exports <- list(biop_2008_2009 = cvp_exports_2008_2009,
                     biop_itp_2018_2019 = cvp_exports_2019_biop_itp,
                     run_of_river = cvp_exports_run_of_river,
                     LTO_12a = cvp_exports_lto)
+# LTO action 5 scenario
+cvp_exports$action_5 <- action_5$cvp_exports
 
 usethis::use_data(cvp_exports, overwrite = TRUE)
 
@@ -1796,6 +1841,8 @@ swp_exports <- list(biop_2008_2009 = swp_exports_2008_2009,
                     biop_itp_2018_2019 = swp_exports_2019_biop_itp,
                     run_of_river = swp_exports_run_of_river,
                     LTO_12a = swp_exports_lto)
+# LTO action 5 scenario
+swp_exports$action_5 <- action_5$swp_exports
 
 usethis::use_data(swp_exports, overwrite = TRUE)
 
