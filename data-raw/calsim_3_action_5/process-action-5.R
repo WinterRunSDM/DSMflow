@@ -341,7 +341,7 @@ proportion_flow_natal <- avg_flows |>
     retQ = 0
   )) |>
   left_join(DSMflow::watershed_ordering) |>
-  arrange(order) |>
+  arrange(year, order) |>
   pivot_wider(names_from = year, values_from = retQ) |>
   select(-watershed, -order) |>
   mutate(across(everything(), ~replace_na(., 0))) |>
@@ -515,8 +515,8 @@ action_5$delta_inflow <- list(north = north_delta_inflows, south = south_delta_i
 action_5$delta_total_diverted <- list(north = north_delta_diversions, south = south_delta_diversions)
 action_5$proportion_flow_bypasses <- proportion_flow_bypasses
 action_5$gates_overtopped <- gates_overtopped
-# action_5$delta_cross_channel_closed <- TODO
 action_5$bypass_flows <- bypass_flows
+# action_5$delta_cross_channel_closed <- TODO
 # action_5$wilkins_flow <- TODO
 # action_5$mean_flow <- TODO
 
