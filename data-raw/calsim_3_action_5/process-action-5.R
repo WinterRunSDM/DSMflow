@@ -37,7 +37,7 @@ watershed_lookup <- c(
 raw_data <- readr::read_csv("data-raw/calsim_3_action_5/SDM_Action5base_MaxProtectShasta-all-processed_v2.csv")
 
 raw_data |>
-  filter(node %in% c("C_CSL004B", "DD_SAC017_SACS"), year(datetime) %in% 1980:2000) |>
+  filter(node %in% c("C_CSL004B", "DD_SAC017_SACS"), year(datetime) %in% 1979:2000) |>
   group_by(datetime) |>
   summarise(values = sum(values))
 
@@ -52,11 +52,14 @@ bypass_flows <- raw_data |>
   ) |>
   group_by(datetime, region) |>
   summarise(values = sum(values)) |> ungroup() |>
-  pivot_wider(values_from = "values", names_from = "region")
+  pivot_wider(values_from = "values", names_from = "region") |>
+  mutate(date = as.Date(datetime)) |>
+  select(-datetime) |>
+  relocate(date, .before = sutter1)
 
 
 # delta diversions total --------------------------------------
-delta_diverseion_total <- raw_data |> filter(year(datetime) %in% 1980:2000, dataset == "delta_diversions_total") |>
+delta_diverseion_total <- raw_data |> filter(year(datetime) %in% 1979:2000, dataset == "delta_diversions_total") |>
   group_by(region, datetime) |>
   summarise(values = sum(values)) |>
   ungroup() |>
@@ -78,7 +81,7 @@ south_delta_diversions <- delta_diverseion_total |> filter(region == "south_delt
 row.names(south_delta_diversions) <- month.abb
 
 
-delta_total_diverted <- array(dim=c(12, 21, 2), dimnames = list(month.abb, 1980:2000, c("North Delta", "South Delta")))
+delta_total_diverted <- array(dim=c(12, 22, 2), dimnames = list(month.abb, 1979:2000, c("North Delta", "South Delta")))
 delta_total_diverted[,,1] <- north_delta_diversions
 delta_total_diverted[,,2] <- south_delta_diversions
 
@@ -86,7 +89,7 @@ delta_total_diverted[,,2] <- south_delta_diversions
 # delta inflows --------------------------------------------
 delta_inflows <- raw_data |>
   filter(dataset == "delta_inflows",
-         year(datetime) %in% 1980:2000) |>
+         year(datetime) %in% 1979:2000) |>
   group_by(region, datetime) |>
   summarise(
     values = sum(values)
@@ -116,7 +119,7 @@ row.names(south_delta_inflows) <- month.abb
 # avg flow -----------------------------------------------------
 # for most of these we can just do a sum which is just one node anyway
 # lower_mid_sac we need to do C_SAC093 * 35.6/58 + C_SAC048 * 22.4/58
-most_avg_flows <- raw_data |> filter(dataset == "avg_flows", year(datetime) %in% 1980:2000,
+most_avg_flows <- raw_data |> filter(dataset == "avg_flows", year(datetime) %in% 1979:2000,
                    region != "lower_mid_sacramento_river") |>
   group_by(datetime, region) |>
   summarise(values = sum(values)) |>
@@ -128,7 +131,7 @@ lower_mid_sacramento_river_avg_flows <- raw_data |> filter(region == "lower_mid_
   select(datetime, region, values )
 
 avg_flows <- bind_rows(most_avg_flows, lower_mid_sacramento_river_avg_flows) |>
-  filter(year(datetime) %in% 1980:2000) |>
+  filter(year(datetime) %in% 1979:2000) |>
   arrange(datetime, region) |>
   mutate(watershed = watershed_lookup[region]) |>
   select(date = datetime, watershed, values) |>
@@ -136,7 +139,7 @@ avg_flows <- bind_rows(most_avg_flows, lower_mid_sacramento_river_avg_flows) |>
 
 
 # Upper Sacramento Flows ------------------------------------------
-upper_sacramento_flows <- raw_data |> filter(dataset == "upsac_flow", year(datetime) %in% 1980:2000) |>
+upper_sacramento_flows <- raw_data |> filter(dataset == "upsac_flow", year(datetime) %in% 1979:2000) |>
   transmute(year = year(datetime), month = month(datetime), values = DSMflow::cfs_to_cms(values)) |>
   pivot_wider(names_from = "year", values_from = "values") |>
   select(-month) |>
@@ -144,7 +147,7 @@ upper_sacramento_flows <- raw_data |> filter(dataset == "upsac_flow", year(datet
 row.names(upper_sacramento_flows) <- month.abb
 
 # Freeport Flows ------------------------------------------
-freeport_flows <- raw_data |> filter(dataset == "freeport_flow", year(datetime) %in% 1980:2000) |>
+freeport_flows <- raw_data |> filter(dataset == "freeport_flow", year(datetime) %in% 1979:2000) |>
   transmute(year = year(datetime), month = month(datetime), values = DSMflow::cfs_to_cms(values)) |>
   pivot_wider(names_from = "year", values_from = "values") |>
   select(-month) |>
@@ -152,7 +155,7 @@ freeport_flows <- raw_data |> filter(dataset == "freeport_flow", year(datetime) 
 row.names(freeport_flows) <- month.abb
 
 # Vernalis Flows ------------------------------------------
-vernalis_flows <- raw_data |> filter(dataset == "vernalis_flow", year(datetime) %in% 1980:2000) |>
+vernalis_flows <- raw_data |> filter(dataset == "vernalis_flow", year(datetime) %in% 1979:2000) |>
   transmute(year = year(datetime), month = month(datetime), values = DSMflow::cfs_to_cms(values)) |>
   pivot_wider(names_from = "year", values_from = "values") |>
   select(-month) |>
@@ -160,7 +163,7 @@ vernalis_flows <- raw_data |> filter(dataset == "vernalis_flow", year(datetime) 
 row.names(vernalis_flows) <- month.abb
 
 # Stockton Flows ------------------------------------------
-stockton_flows <- raw_data |> filter(dataset == "stockton_flow", year(datetime) %in% 1980:2000) |>
+stockton_flows <- raw_data |> filter(dataset == "stockton_flow", year(datetime) %in% 1979:2000) |>
   transmute(year = year(datetime), month = month(datetime), values = DSMflow::cfs_to_cms(values)) |>
   pivot_wider(names_from = "year", values_from = "values") |>
   select(-month) |>
@@ -169,7 +172,7 @@ row.names(stockton_flows) <- month.abb
 
 # CVP Exports Realized (Jones Pumping) ------------------------------------------
 # these use the updated nodes recommended in the LTO report
-cvp_realized <- raw_data |> filter(dataset == "cvp_exports_realized", year(datetime) %in% 1980:2000) |>
+cvp_realized <- raw_data |> filter(dataset == "cvp_exports_realized", year(datetime) %in% 1979:2000) |>
   transmute(year = year(datetime), month = month(datetime), values = DSMflow::cfs_to_cms(values)) |>
   pivot_wider(names_from = "year", values_from = "values") |>
   select(-month) |>
@@ -177,7 +180,7 @@ cvp_realized <- raw_data |> filter(dataset == "cvp_exports_realized", year(datet
 row.names(cvp_realized) <- month.abb
 
 # SWP Exports Realized (Banks Pumping) ------------------------------------------
-swp_realized <- raw_data |> filter(dataset == "swp_exports_realized", year(datetime) %in% 1980:2000) |>
+swp_realized <- raw_data |> filter(dataset == "swp_exports_realized", year(datetime) %in% 1979:2000) |>
   transmute(year = year(datetime), month = month(datetime), values = DSMflow::cfs_to_cms(values)) |>
   pivot_wider(names_from = "year", values_from = "values") |>
   select(-month) |>
@@ -187,7 +190,7 @@ row.names(swp_realized) <- month.abb
 
 # Proportion Diverted --------------------------------------------------------
 prop_div_wide <- raw_data |>
-  filter(dataset == "prop_diversion", year(datetime) %in% 1980:2000) |>
+  filter(dataset == "prop_diversion", year(datetime) %in% 1979:2000) |>
   select(-dataset, -region, -units) |>
   distinct(datetime, node, values) |>
   pivot_wider(names_from = node, values_from = values)
@@ -243,7 +246,7 @@ proportion_diverted <- prop_div_wide |>
 
 dimnames(proportion_diverted) <- list(DSMflow::watershed_ordering$watershed,
                                       month.abb[1:12],
-                                      1980:2000)
+                                      1979:2000)
 
 
 # Total Diverted -------------------------------------------------------------
@@ -294,7 +297,7 @@ total_diverted <- prop_div_wide |>
 
 dimnames(total_diverted) <- list(DSMflow::watershed_ordering$watershed,
                                  month.abb[1:12],
-                                 1980:2000)
+                                 1979:2000)
 
 
 # Mean Flow ------------------------------------------------------------------
@@ -302,7 +305,7 @@ dimnames(total_diverted) <- list(DSMflow::watershed_ordering$watershed,
 
 # San Joaquin Flows ----------------------------------------------------------
 san_joaquin_flows <- avg_flows |>
-  filter(year(date) %in% 1980:2000) |>
+  filter(year(date) %in% 1979:2000) |>
   transmute(year = year(date), month = month(date),
             sjQcms = DSMflow::cfs_to_cms(`San Joaquin River`)) |>
   pivot_wider(names_from = year, values_from = sjQcms) |>
@@ -378,7 +381,7 @@ rownames(proportion_pulse_flows) <- DSMflow::watershed_ordering$watershed
 
 # Delta Flows ----------------------------------------------------------------
 delta_inflows_cfs <- raw_data |>
-  filter(dataset == "delta_inflows", year(datetime) %in% 1980:2000) |>
+  filter(dataset == "delta_inflows", year(datetime) %in% 1979:2000) |>
   group_by(region, datetime) |>
   summarise(values = sum(values)) |>
   ungroup() |>
@@ -386,7 +389,7 @@ delta_inflows_cfs <- raw_data |>
   rename(date = datetime, n_dlt_inflow_cfs = north_delta, s_dlt_inflow_cfs = south_delta)
 
 delta_div_cfs <- raw_data |>
-  filter(dataset == "delta_diversions_total", year(datetime) %in% 1980:2000) |>
+  filter(dataset == "delta_diversions_total", year(datetime) %in% 1979:2000) |>
   group_by(region, datetime) |>
   summarise(values = sum(values)) |>
   ungroup() |>
@@ -402,19 +405,19 @@ delta_flows <- delta_inflows_cfs |>
 
 # Delta Proportion Diverted --------------------------------------------------
 delta_prop_div <- delta_flows |>
-  filter(year(date) %in% 1980:2000) |>
+  filter(year(date) %in% 1979:2000) |>
   select(date, n_dlt_prop_div, s_dlt_prop_div) |>
   pivot_longer(n_dlt_prop_div:s_dlt_prop_div,
                names_to = "delta", values_to = "prop_div") |>
   pivot_wider(names_from = date, values_from = prop_div) |>
   select(-delta)
 
-delta_proportion_diverted <- array(NA, dim = c(12, 21, 2))
-delta_proportion_diverted[, , 1] <- as.matrix(delta_prop_div[1, ], nrow = 12, ncol = 21)
-delta_proportion_diverted[, , 2] <- as.matrix(delta_prop_div[2, ], nrow = 12, ncol = 21)
+delta_proportion_diverted <- array(NA, dim = c(12, 22, 2))
+delta_proportion_diverted[, , 1] <- as.matrix(delta_prop_div[1, ], nrow = 12, ncol = 22)
+delta_proportion_diverted[, , 2] <- as.matrix(delta_prop_div[2, ], nrow = 12, ncol = 22)
 
 dimnames(delta_proportion_diverted) <- list(month.abb[1:12],
-                                            1980:2000,
+                                            1979:2000,
                                             c('North Delta', 'South Delta'))
 
 
@@ -429,7 +432,7 @@ propq_nodes <- c("SP_SAC193_BTC003", "SP_SAC188_BTC003", "SP_SAC178_BTC003",
                  "C_SAC195", "SP_SAC083_YBP037", "C_SAC048")
 
 propq_wide <- raw_data |>
-  filter(node %in% propq_nodes, year(datetime) %in% 1980:2000) |>
+  filter(node %in% propq_nodes, year(datetime) %in% 1979:2000) |>
   select(datetime, node, values) |>
   distinct(datetime, node, values) |>
   pivot_wider(names_from = node, values_from = values)
@@ -447,12 +450,12 @@ bypass_prop_flow <- propq_wide |>
   select(-month, -bypass) |>
   as.matrix()
 
-proportion_flow_bypasses <- array(NA, dim = c(12, 21, 2))
+proportion_flow_bypasses <- array(NA, dim = c(12, 22, 2))
 proportion_flow_bypasses[, , 1] <- bypass_prop_flow[1:12, ]
 proportion_flow_bypasses[, , 2] <- bypass_prop_flow[13:24, ]
 
 dimnames(proportion_flow_bypasses) <- list(month.abb[1:12],
-                                           1980:2000,
+                                           1979:2000,
                                            c('Sutter Bypass', 'Yolo Bypass'))
 
 
@@ -464,7 +467,7 @@ overtopped_nodes <- c("SP_SAC193_BTC003", "SP_SAC188_BTC003", "SP_SAC178_BTC003"
                       "C_SSL001", "SP_SAC083_YBP037", "C_CSL005")
 
 overtopped_wide <- raw_data |>
-  filter(node %in% overtopped_nodes, year(datetime) %in% 1980:2000) |>
+  filter(node %in% overtopped_nodes, year(datetime) %in% 1979:2000) |>
   select(datetime, node, values) |>
   distinct(datetime, node, values) |>
   pivot_wider(names_from = node, values_from = values)
@@ -483,12 +486,12 @@ bypass_overtopped <- overtopped_wide |>
   select(-month, -bypass) |>
   as.matrix()
 
-gates_overtopped <- array(NA, dim = c(12, 21, 2))
+gates_overtopped <- array(NA, dim = c(12, 22, 2))
 gates_overtopped[, , 1] <- bypass_overtopped[1:12, ]
 gates_overtopped[, , 2] <- bypass_overtopped[13:24, ]
 
 dimnames(gates_overtopped) <- list(month.abb[1:12],
-                                   1980:2000,
+                                   1979:2000,
                                    c('Sutter Bypass', 'Yolo Bypass'))
 
 
