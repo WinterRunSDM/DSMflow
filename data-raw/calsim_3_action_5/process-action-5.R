@@ -52,7 +52,10 @@ bypass_flows <- raw_data |>
   ) |>
   group_by(datetime, region) |>
   summarise(values = sum(values)) |> ungroup() |>
-  pivot_wider(values_from = "values", names_from = "region")
+  pivot_wider(values_from = "values", names_from = "region") |>
+  mutate(date = as.Date(datetime)) |>
+  select(-datetime) |>
+  relocate(date, .before = sutter1)
 
 
 # delta diversions total --------------------------------------
