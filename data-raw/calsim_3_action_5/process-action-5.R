@@ -33,13 +33,26 @@ watershed_lookup <- c(
   "yuba_river" = "Yuba River"
 )
 
-calsim_data <- readr::read_csv("data-raw/calsim_3_action_5/calsim3-processed-all.csv")
-raw_data <- readr::read_csv("data-raw/calsim_3_action_5/sdm_action_5_vason.csv")
+#calsim_data <- readr::read_csv("data-raw/calsim_3_action_5/calsim3-processed-all.csv")
+raw_data <- readr::read_csv("data-raw/calsim_3_action_5/SDM_Action5base_MaxProtectShasta-all-processed_v2.csv")
 
 raw_data |>
   filter(node %in% c("C_CSL004B", "DD_SAC017_SACS"), year(datetime) %in% 1979:2000) |>
   group_by(datetime) |>
   summarise(values = sum(values))
+
+# bypass flows ------------------------------------------------------
+bypass_flows <- raw_data |>
+  filter(dataset == "bypass_flows", year(datetime) >= 1979) |>
+  mutate(
+    region = case_when(
+      node %in% c("SP_SAC193_BTC003", "SP_SAC188_BTC003", "SP_SAC178_BTC003") ~ "sutter1",
+    TRUE ~ region
+    )
+  ) |>
+  group_by(datetime, region) |>
+  summarise(values = sum(values)) |> ungroup() |>
+  pivot_wider(values_from = "values", names_from = "region")
 
 
 # delta diversions total --------------------------------------
@@ -328,7 +341,7 @@ proportion_flow_natal <- avg_flows |>
     retQ = 0
   )) |>
   left_join(DSMflow::watershed_ordering) |>
-  arrange(order) |>
+  arrange(year, order) |>
   pivot_wider(names_from = year, values_from = retQ) |>
   select(-watershed, -order) |>
   mutate(across(everything(), ~replace_na(., 0))) |>
@@ -502,8 +515,8 @@ action_5$delta_inflow <- list(north = north_delta_inflows, south = south_delta_i
 action_5$delta_total_diverted <- list(north = north_delta_diversions, south = south_delta_diversions)
 action_5$proportion_flow_bypasses <- proportion_flow_bypasses
 action_5$gates_overtopped <- gates_overtopped
+action_5$bypass_flows <- bypass_flows
 # action_5$delta_cross_channel_closed <- TODO
-# action_5$bypass_flows <- TODO
 # action_5$wilkins_flow <- TODO
 # action_5$mean_flow <- TODO
 

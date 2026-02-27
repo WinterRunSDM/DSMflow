@@ -280,7 +280,7 @@ bypass_flows <- list(biop_2008_2009 = bypass_2008_2009,
 
 assertthat::are_equal(names(run_of_river), names(lto_calsim3_bypass_flows))
 # LTO action 5 scenario
-# bypass_flows$action_5 <- action_5$bypass_flows # TODO: not yet available
+bypass_flows$action_5 <- action_5$bypass_flows
 
 usethis::use_data(bypass_flows, overwrite = TRUE)
 
