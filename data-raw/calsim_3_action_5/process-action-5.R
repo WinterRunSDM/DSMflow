@@ -115,6 +115,10 @@ south_delta_inflows <- delta_inflows |> filter(region == "south_delta") |>
 
 row.names(south_delta_inflows) <- month.abb
 
+delta_inflows <- array(dim=c(12, 22, 2), dimnames = list(month.abb, 1979:2000, c("North Delta", "South Delta")))
+delta_inflows[,,1] <- north_delta_inflows
+delta_inflows[,,2] <- south_delta_inflows
+
 
 # avg flow -----------------------------------------------------
 # for most of these we can just do a sum which is just one node anyway
@@ -514,8 +518,8 @@ action_5$proportion_flow_natal <- proportion_flow_natal
 action_5$proportion_pulse_flows <- proportion_pulse_flows
 action_5$delta_flows <- delta_flows
 action_5$delta_proportion_diverted <- delta_proportion_diverted
-action_5$delta_inflow <- list(north = north_delta_inflows, south = south_delta_inflows)
-action_5$delta_total_diverted <- list(north = north_delta_diversions, south = south_delta_diversions)
+action_5$delta_inflow <- delta_inflows
+action_5$delta_total_diverted <- delta_total_diverted
 action_5$proportion_flow_bypasses <- proportion_flow_bypasses
 action_5$gates_overtopped <- gates_overtopped
 action_5$bypass_flows <- bypass_flows
