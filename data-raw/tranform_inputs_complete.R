@@ -1187,7 +1187,8 @@ rownames(delta_cross_channel_closed_run_of_river) <- c('count', 'proportion')
 delta_cross_channel_closed <- list(biop_2008_2009 = delta_cross_channel_closed_2008_2009,
                                    biop_itp_2018_2019 = delta_cross_channel_closed_2018_2019,
                                    run_of_river = delta_cross_channel_closed_run_of_river,
-                                   LTO_12a = delta_cross_channel_closed_2018_2019)
+                                   LTO_12a = delta_cross_channel_closed_2018_2019,
+                                   action_5 = delta_cross_channel_closed_2018_2019)
 
 # LTO action 5 scenario
 # delta_cross_channel_closed$action_5 <- action_5$delta_cross_channel_closed # TODO: not yet available
