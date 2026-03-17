@@ -141,27 +141,27 @@ sac_sr12_hydrograph_dry <- tibble(month = factor(month.abb[1:12],
                                                10700, # Feb: maximize survival per Cyril
                                                10700, # March: maximize survival per Cyril
                                                10700, # April: maximize survival per Cyril
-                                               4750, # May: Maximize spawning habitat
-                                               4750, # June: Maximize spawning habitat
-                                               4750, # July: Maximize spawning habitat
+                                               7500, # May: Maximize spawning habitat
+                                               7500, # June: Maximize spawning habitat
+                                               7500, # July: Maximize spawning habitat
                                                550, # August: dry season base flow
                                                550, # September: dry season base flow
                                                550, # Oct: dry season base flow
                                                5625, # Nov: midpoint between base flow and survival threshold flows
-                                               10700 # Dec: maximize survival per Cyril
+                                               8162 # Dec: midpoint between base flow and survival threshold flows
                                              ),
                             description = c("Keep high for migratory survival (10700 for mig surv ~50%)", 
                                             "Keep high for migratory survival (10700 for mig surv ~50%)",
                                             "Keep high for migratory survival (10700 for mig surv ~50%)",
                                             "Keep high for migratory survival (10700 for mig surv ~50%)",
-                                            "Optimize for spawning habitat based on flow area WUA",
-                                            "Optimize for spawning habitat based on flow area WUA",
-                                            "Optimize for spawning habitat based on flow area WUA",
+                                            "Optimize for spawning habitat based on WR flow area WUA",
+                                            "Optimize for spawning habitat based on WR flow area WUA",
+                                            "Optimize for spawning habitat based on WR flow area WUA",
                                             "Set summer base flow to 550 cfs (natural flows tool)",
                                             "Set summer base flow to 550 cfs (natural flows tool)",
                                             "Set summer base flow to 550 cfs (natural flows tool)",
                                            "Midpoint between base flow and migratory survival flow", 
-                                           "Keep high for migratory survival (10700 for mig surv ~50%)"))
+                                           "Midpoint between midpoint and migratory survival flow"))
 
 knitr::kable(sac_sr12_hydrograph_dry)
 
