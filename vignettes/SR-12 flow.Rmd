@@ -1,11 +1,12 @@
 ---
-title: "SR-12 Hydrograph"
+title: "SR-12 Hydrograph DRAFT"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(DSMflow)
 ```
 
 ## Modeling Action SR-12 in the WRCS SDM process
@@ -14,12 +15,18 @@ Action SR-12 proposed the purchase and/or lease of water rights on the Sacrament
 
 We use the flow-survival thresholds identified in Michel 2021 and create a synthetic hydrograph optimized for Winter Run Chinook Salmon (WRCS) life history and survival. We use the Action 5 CalSim III run as a baseline and splice the synthetic hydrograph in the dry years in the model. We also produce the total volume of water needed per month in each dry year in the time series to model the amount of water that would need to be purchased to achieve this flow regime.
 
+![](images/michel_2021_thresholds_fig6 2.png)
+*Michel 2021 Fig 6*
 
 **Pilot methods previously developed for Reorienting to Recovery (R2R)**
 
-The R2R technical team met with a flow subgroup to determine the best way to model functional flows. The team started by looking at the Nature Conservancy's Natural Flows Database to understand dynamics in the Upper Sacramento system. Acknowledging that modifying flows will only affect parts of the decision support model (DSM) that use flow-based relationships, we decided to use flow-to-habitat and flow-to-survival relationships to determine when and how much flow we wanted in the Sacramento river. We compared this to the Natural Flows tool and the Calsim 2019 BiOp to provide some comparison of total flow volumes in these scenarios. This produced a wet and dry year monthly functional flow hydrograph, compiled into a 20-year synthetic time series based on the historical water year types represented in the R2R model time frame (1980-2000).
+The R2R technical team met with a flow subgroup to determine the best way to model functional flows. The team started by looking at the Nature Conservancy's Natural Flows Database to understand dynamics in the Upper Sacramento system. Acknowledging that modifying flows will only affect parts of the decision support model (DSM) that use flow-based relationships, the team decided to use flow-to-habitat and flow-to-survival relationships to determine when and how much flow wanted in the Sacramento river. The team compared this to the Natural Flows tool and the Calsim 2019 BiOp to provide some comparison of total flow volumes in these scenarios. This produced a wet and dry year monthly functional flow hydrograph, compiled into a 20-year synthetic time series based on the historical water year types represented in the R2R model time frame (1980-2000).
 
-### What is a functional flow
+**Adapting for WR SDM SR-12**
+
+To modify this approach for SR-12, we used the same guidelines but only produced this hydrograph for dry years and spliced it into the overall time series using Action 5 for wet years. We also shifted the timelines to match life history of winter run.
+
+### Defining a functional flow
 
 California's functional flow include 5 distinct components of a natural flow regime for Chinook: fall pulse flows, wet season peak flows, wet season base flows, spring recession flows, and dry season baseflows.
 
@@ -33,7 +40,7 @@ For more information on functional flow please refer to additional sources:
 
 -   [Natural Flows Database](https://rivers.codefornature.org/#/map)
 
-### Tailoring functional flows to our system
+### Tailoring functional flows to the Central Valley system
 
 Functional flows are hypothesized to be the best flows for salmon in our historical system. However, our system is highly managed so we needed to alter the salmonid functional flow to maximize benefit to salmon.
 
@@ -42,11 +49,14 @@ The R2R techncial team developed proposed functional flow monthly flows by combi
 This original attempt did not maximize habitat so the technical team revised their approach to maximize modeled habitat and survival using the following principles: 
 
 1) Optimize spawning habitat during winter run spawning time frame (May, June, July) based on the Upper-mid Sacramento flow-to-suitable-habitat curves documented [here](https://reorienting-to-recovery.github.io/DSMhabitat/reference/sacramento_habitat.html).
-2) Fix dry season base flow at a low value to maximize water for Juveniles, use Natural Flows Database as a guide (August, September)
+2) Fix dry season base flow at a low value to maximize water for Juveniles, use Natural Flows Database as a guide (August, September, October)
 3) Optimize outmigration survival in last 3 model outmigration months (February, March, April). If water volume allows set migratory survival above 50%. If volume of water limited, set migratory survival above 20% (based on migratory survival flow survival thresholds on the Sacramento River (from [Michel 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.3498)). 
-4) Utilize additional flows for maximizing FP habitat in (October, November, December, January)
+4) Utilize additional flows for maximizing FP habitat in (December, January, February, March, April)
 
-```{r, echo=FALSE}
+
+For the SR-12 flow development, a few of these rules were modified. Instead of utilizing additional flows to maximize FP habitat (point 4), we assumed we were not constrained by a total volume and set flows to optimize outmigration survival from December through April. We also set the volume for November to be a midpoint between base flow (550 cfs) and a value maximizing outmigration survival (10,700 cfs).
+
+```{r, echo=FALSE, warning = FALSE}
 # Helper / Set Up Code
 # Compare total flow volumne function 
 compare_total_flow_volumne <- function(calsim_flows, natural_flow_flows, proposed_flow){
@@ -97,13 +107,13 @@ representative_dry_years |>
 
 ```
 
-### Proposed Model Hydrograph {.tabset}
+### Proposed Model Hydrograph
 
 #### Dry Year Hydrograph
 
 The table below shows monthly flow CFS for a dry year model hydrograph on the Sacramento River. This table was constructed using the Natural Flows database and model survival thresholds.
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE}
 # Dry Years 
 dry_year <- DSMflow::flows_cfs$action_5 |> 
   select(date, flow_cfs = `Upper-mid Sacramento River`) |> 
@@ -137,21 +147,21 @@ sac_sr12_hydrograph_dry <- tibble(month = factor(month.abb[1:12],
                                                550, # August: dry season base flow
                                                550, # September: dry season base flow
                                                550, # Oct: dry season base flow
-                                               10700, # Nov: maximize survival per Cyril
+                                               5625, # Nov: midpoint between base flow and survival threshold flows
                                                10700 # Dec: maximize survival per Cyril
                                              ),
-                            description = c("Keep high for migratory survival (10700 for mig surv ~60%)", 
-                                            "Keep high for migratory survival (10700 for mig surv ~60%)",
-                                            "Keep high for migratory survival (10700 for mig surv ~60%)",
+                            description = c("Keep high for migratory survival (10700 for mig surv ~50%)", 
+                                            "Keep high for migratory survival (10700 for mig surv ~50%)",
+                                            "Keep high for migratory survival (10700 for mig surv ~50%)",
+                                            "Keep high for migratory survival (10700 for mig surv ~50%)",
                                             "Optimize for spawning habitat based on flow area WUA",
                                             "Optimize for spawning habitat based on flow area WUA",
                                             "Optimize for spawning habitat based on flow area WUA",
                                             "Set summer base flow to 550 cfs (natural flows tool)",
                                             "Set summer base flow to 550 cfs (natural flows tool)",
                                             "Set summer base flow to 550 cfs (natural flows tool)",
-                                           "Keep high for migratory survival (10700 for mig surv ~60%)", 
-                                           "Keep high for migratory survival (10700 for mig surv ~60%)", 
-                                           "Keep high for migratory survival (10700 for mig surv ~60%)"))
+                                           "Midpoint between base flow and migratory survival flow", 
+                                           "Keep high for migratory survival (10700 for mig surv ~50%)"))
 
 knitr::kable(sac_sr12_hydrograph_dry)
 
@@ -160,7 +170,7 @@ knitr::kable(sac_sr12_hydrograph_dry)
 The plot below shows the CalSIM modeled flows for the Sacramento River of an existing representative dry year: `r rep_year`, which has the median water year index as provided by DWR out of all the "Critical", "Dry", and "Below Normal" years within our model time frame.
 
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE}
 combined_data_dry <- bind_rows((sac_sr12_hydrograph_dry |> 
                                   mutate(Type = "SR-12 hydrograph dry year")), 
                   (sac_dry_natural_flows_database_hydrograph |> 
@@ -179,7 +189,7 @@ combined_data_dry |>
 
 The table below shows the annual total volume of water needed for each flow scenario. The dry year SR-12 flow uses less water than the Natural Flows database functional flow and than the representative CalSim year. 
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE}
 compare_total_flow_volumne(dry_year, 
                            sac_dry_natural_flows_database_hydrograph,
                            sac_sr12_hydrograph_dry) |> 
@@ -190,6 +200,10 @@ compare_total_flow_volumne(dry_year,
 ```
 
 ### Comparing by month
+
+The table below shows the average differential by month (CalSim Action 5 - SR-12 hydrograph). Negative values denote flow that would needed to be added in those months; positive values indicate Action 5 baseline has more flow, on average, for that month compared to the SR-12 hydrograph.
+
+
 ```{r, echo = FALSE, warning = FALSE}
 monthly_compare_action_5 <- flows_cfs$action_5 |>
   select(date, flow_cfs = `Upper Sacramento River`) |> 
