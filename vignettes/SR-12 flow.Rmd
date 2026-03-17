@@ -50,7 +50,7 @@ This original attempt did not maximize habitat so the technical team revised the
 # Helper / Set Up Code
 # Compare total flow volumne function 
 compare_total_flow_volumne <- function(calsim_flows, natural_flow_flows, proposed_flow){
-  all_flows <- bind_rows(calsim_flows |> mutate(type = "calsim"), 
+  all_flows <- bind_rows(calsim_flows |> mutate(type = "CalSim Action 5"), 
                          natural_flow_flows |> mutate(type = "Natural flows Database flows"),
                          proposed_flow |> mutate(type = "Proposed Model functional flow")) |> 
     select(month, flow_cfs, type) |> 
@@ -58,8 +58,7 @@ compare_total_flow_volumne <- function(calsim_flows, natural_flow_flows, propose
     group_by(type) |> 
     summarise(annual_acre_feet = sum(acre_ft_per_month)) |> 
     rename(Scenario = type, "Annual Acre Ft Water" = annual_acre_feet) 
-  
-  return(knitr::kable(all_flows))
+  return(all_flows)
 }
 
 # Find Representative water year types
@@ -72,22 +71,29 @@ median_wet_year_index <- water_year_types |>
   filter(year_type %in% c("Wet", "Above Normal")) |> 
   pull(index) |> median()
 
-represenative_wet_years <- water_year_types |>
+representative_wet_years <- water_year_types |>
   mutate(distance_from_median = abs(index - median_wet_year_index)) |> 
-  filter(distance_from_median < 1) 
+  filter(distance_from_median < 1) |> 
+  arrange(distance_from_median)
   
-# Representative Wet years are 1984 & 1996 - both .13 away 
+# Representative Wet years are 1984 & 1986 - both .02 away 
 
 
 median_dry_year_index <- water_year_types |> 
   filter(year_type %in% c("Critical", "Dry", "Below Normal")) |> 
   pull(index) |> median()
 
-represenative_dry_years <- water_year_types |>
+representative_dry_years <- water_year_types |>
   mutate(distance_from_median = abs(index - median_dry_year_index)) |> 
-  filter(distance_from_median < 1) 
+  filter(distance_from_median < 1) |> 
+  arrange(distance_from_median)
 
-# Representative Wet years are 1987 & 1994 - both .42 away
+# Representative Wet years are 1989 and 1955 - both .005 away
+rep_year <- 1989
+
+representative_dry_years |> 
+  filter(year == rep_year) |> 
+  knitr::kable()
 
 ```
 
@@ -95,17 +101,20 @@ represenative_dry_years <- water_year_types |>
 
 #### Dry Year Hydrograph
 
-The table below shows monthly flow CFS for a dry year model functional flow on the Sacramento River. This table was constructed using the Natural Flows database and model survival thresholds.
+The table below shows monthly flow CFS for a dry year model hydrograph on the Sacramento River. This table was constructed using the Natural Flows database and model survival thresholds.
 
 ```{r, echo = FALSE}
 # Dry Years 
-dry_year <- DSMflow::flows_cfs$biop_itp_2018_2019 |> 
+dry_year <- DSMflow::flows_cfs$action_5 |> 
   select(date, flow_cfs = `Upper-mid Sacramento River`) |> 
-  filter(year(date) == 1987) |>
+  filter(year(date) == rep_year) |>
     mutate(water_year = as.Date(ifelse(month(date) %in% 10:12, 
                              date,
-                             as.Date(paste0(year(date) + 1, "-", month(date), "-", day(date))))),
-         month = factor(month.abb[month(date)], levels = month.abb[c(10, 11, 12, 1:9)])) 
+                             as.Date(paste0(year(date) + 1, 
+                                            "-", month(date), 
+                                            "-", day(date))))),
+         month = factor(month.abb[month(date)], 
+                        levels = month.abb[c(10, 11, 12, 1:9)])) 
 
 sac_dry_natural_flows_database_hydrograph <- tibble(month = factor(month.abb[1:12], 
                                                         levels = month.abb[c(10, 11, 12, 1:9)]),
@@ -115,49 +124,49 @@ sac_dry_natural_flows_database_hydrograph <- tibble(month = factor(month.abb[1:1
                                                      2230, 6060, 10100))
 
 # Build Functional flow curve 
-sac_functional_flows_for_model_dry <- tibble(month = factor(month.abb[1:12], 
+sac_sr12_hydrograph_dry <- tibble(month = factor(month.abb[1:12], 
                                                         levels = month.abb[c(10, 11, 12, 1:9)]),
                                              flow_cfs = c(
-                                               8735, # Jan: Utilize leftover volume for fp rearing
+                                               10700, # Jan: maximize survival per Cyril
                                                10700, # Feb: maximize survival per Cyril
                                                10700, # March: maximize survival per Cyril
                                                10700, # April: maximize survival per Cyril
                                                4750, # May: Maximize spawning habitat
                                                4750, # June: Maximize spawning habitat
                                                4750, # July: Maximize spawning habitat
-                                               500, # August: dry season base flow
-                                               500, # September: dry season base flow
-                                               8735, # Oct: Utilize leftover volume for fp rearing
-                                               8735, # Nov: Utilize leftover volume for fp rearing
-                                               8735 # Dec: Utilize leftover volume for fp rearing
+                                               550, # August: dry season base flow
+                                               550, # September: dry season base flow
+                                               550, # Oct: dry season base flow
+                                               10700, # Nov: maximize survival per Cyril
+                                               10700 # Dec: maximize survival per Cyril
                                              ),
-                            description = c("Utilize remaining water for FP habitat", 
-                                            "Keep high for migratory survival (10700 for mig surv ~60%)",
+                            description = c("Keep high for migratory survival (10700 for mig surv ~60%)", 
                                             "Keep high for migratory survival (10700 for mig surv ~60%)",
                                             "Keep high for migratory survival (10700 for mig surv ~60%)",
                                             "Optimize for spawning habitat based on flow area WUA",
                                             "Optimize for spawning habitat based on flow area WUA",
                                             "Optimize for spawning habitat based on flow area WUA",
-                                            "Set summer base flow to 500 cfs (natural flows tool)",
-                                            "Set summer base flow to 500 cfs (natural flows tool)",
-                                           "Utilize remaining water for FP habitat", 
-                                           "Utilize remaining water for FP habitat", 
-                                           "Utilize remaining water for FP habitat"))
+                                            "Set summer base flow to 550 cfs (natural flows tool)",
+                                            "Set summer base flow to 550 cfs (natural flows tool)",
+                                            "Set summer base flow to 550 cfs (natural flows tool)",
+                                           "Keep high for migratory survival (10700 for mig surv ~60%)", 
+                                           "Keep high for migratory survival (10700 for mig surv ~60%)", 
+                                           "Keep high for migratory survival (10700 for mig surv ~60%)"))
 
-knitr::kable(sac_functional_flows_for_model_dry)
+knitr::kable(sac_sr12_hydrograph_dry)
 
 ```
 
-The plot below shows the CalSIM modeled flows for the Sacramento River of an existing representative dry year: 1987. 1987 has the median water year index as provided by DWR out of all the "Critical", "Dry", and "Below Normal" years within our model time frame.
+The plot below shows the CalSIM modeled flows for the Sacramento River of an existing representative dry year: `r rep_year`, which has the median water year index as provided by DWR out of all the "Critical", "Dry", and "Below Normal" years within our model time frame.
 
 
 ```{r, echo = FALSE}
-combined_data_dry <- bind_rows((sac_functional_flows_for_model_dry |> 
-                                  mutate(Type = "Model functional flow Dry Year")), 
+combined_data_dry <- bind_rows((sac_sr12_hydrograph_dry |> 
+                                  mutate(Type = "SR-12 hydrograph dry year")), 
                   (sac_dry_natural_flows_database_hydrograph |> 
                      mutate(Type = "Natural Flows functional flow")),
                   (dry_year |> 
-                     mutate(Type = "CalSim")))
+                     mutate(Type = "CalSim Action 5")))
 combined_data_dry |> 
   ggplot(aes(x = month, y = flow_cfs, color = Type, group = Type)) + 
   geom_line() +
@@ -165,18 +174,59 @@ combined_data_dry |>
   scale_color_manual(values = c("black", "lightblue", "gray")) +
   labs(x = "Month", 
        y = "Flow CFS", 
-       title = "Dry Year - Model Constructed Salmonid Monthly Flows")
+       title = "Dry Year - SR-12 Salmonid Monthly Flows")
 ```
 
-The table below shows the annual total volume of water needed for each flow scenario. The dry year functional flow uses less water than the Natural Flows database functional flow and than the representative CalSIM year. 
+The table below shows the annual total volume of water needed for each flow scenario. The dry year SR-12 flow uses less water than the Natural Flows database functional flow and than the representative CalSim year. 
 
 ```{r, echo = FALSE}
 compare_total_flow_volumne(dry_year, 
                            sac_dry_natural_flows_database_hydrograph,
-                           sac_functional_flows_for_model_dry)
+                           sac_sr12_hydrograph_dry) |> 
+  mutate(`Annual Acre Ft Water` = prettyNum(`Annual Acre Ft Water`, big.mark = ",")) |> 
+  arrange(desc(`Annual Acre Ft Water`)) |> 
+  knitr::kable()
 
 ```
 
+### Comparing by month
+```{r, echo = FALSE, warning = FALSE}
+monthly_compare_action_5 <- flows_cfs$action_5 |>
+  select(date, flow_cfs = `Upper Sacramento River`) |> 
+  mutate(year = year(date),
+         water_year = ifelse(month(date) %in% 10:12, year - 1, year)) |> 
+  filter(water_year %in% 1980:2000) |> 
+  left_join(water_year_types, 
+            by = c("water_year" = "year")) |> 
+  select(-index) |> 
+  mutate(replace_dry_year = ifelse(year_type %in% c("Critical", "Below Normal", "Dry"), TRUE, FALSE))
+
+monthly_compare <- monthly_compare_action_5 |> 
+  filter(replace_dry_year) |> 
+  mutate(month = month(date)) |> 
+  rename(flow_cfs_action5 = flow_cfs) |> 
+  left_join(sac_sr12_hydrograph_dry |> 
+              mutate(month = 1:12) |> 
+              rename(flow_cfs_sr12 = flow_cfs),
+            by = "month") |> 
+  select(-c(year, year_type, replace_dry_year, description)) |> 
+  mutate(differential = flow_cfs_action5 - flow_cfs_sr12,
+         differential_acre_ft_month = differential * 60.3707)
+  
+monthly_compare |> 
+  group_by(month) |> 
+  summarise(avg_differential = mean(differential_acre_ft_month),
+            median_differential = median(differential_acre_ft_month)) |> 
+  ungroup() |> 
+  mutate(avg_differential = prettyNum(round(avg_differential), big.mark = ","),
+         median_differential = prettyNum(round(median_differential), big.mark = ","),
+         month = month.abb) |> 
+  rename(`Month` = month, 
+         `Monthly differential (acre ft / month)` = avg_differential, 
+         `Median differential (acre ft / month)` = median_differential) |> 
+  knitr::kable()
+  
+```
 ### Creating a synthetic flow timeserries
 
 In order to incorporate these functional flow into the model data inputs we combined wet years from the action 5 CalSim III run and synthetic dry year hydrograph to make a time series over the full 20 year period. We started by classifying years as "Dry" or "Wet" based on DWR water year type classifications. All "Dry", "Critical", or "Below Normal" years fall into the "Dry" category and all "Wet" or "Above Normal" years fall into the "Wet" category. 
@@ -190,58 +240,59 @@ new_year_types <- water_year_types |>
                                              "Dry", "Wet")) |>
   select(year, year_type) 
 
-dry <- sac_functional_flows_for_model_dry |> 
-  mutate(year_type = "Dry",
-         month = match(month.abb, month)) 
+dry_replace <- sac_sr12_hydrograph_dry |> 
+  mutate(month = 1:12) |> 
+  select(-description)
 
 # get action 5 wet year
 # For calsim flow picked average wet year 
-wet_year <- DSMflow::flows_cfs$action_5 |> 
+action_5_with_year_types <- DSMflow::flows_cfs$action_5 |> 
   select(date, flow_cfs = `Upper-mid Sacramento River`) |> 
-  filter(year(date) == 1996) |>
-  mutate(water_year = as.Date(ifelse(month(date) %in% 10:12, 
-                             date,
-                             as.Date(paste0(year(date) + 1, "-", month(date), "-", day(date))))),
-         month = factor(month.abb[month(date)], levels = month.abb[c(10, 11, 12, 1:9)]),
-         year_type = "Wet",
-         month = match(month.abb, month)) 
+  mutate(water_year = ifelse(month(date) %in% 10:12, 
+                             year(date) - 1, year(date))) |> 
+  left_join(water_year_types |> 
+              select(water_year = year, year_type))
 
-wet_years <- new_year_types |> 
-  full_join(wet_year) 
+action_5_wet_years <- action_5_with_year_types |> 
+  filter(year_type %in% c("Above Normal", "Wet"))
 
-dry_years <- new_year_types|> 
-  full_join(dry) 
+replace_dry_years <- action_5_with_year_types |> 
+  filter(year_type %in% c("Below Normal", "Critical", "Dry")) |> 
+  mutate(month = month(date)) |> 
+  select(date, flow_cfs_old = flow_cfs, month) |> 
+  left_join(dry_replace, by = "month") |> 
+  select(-flow_cfs_old, -month)
 
-synthetic_hydrograph_sac <- bind_rows(wet_years, dry_years) |> 
-  mutate(date = as_date(paste0(year, "-", month, "-", ifelse(month == 2 & leap_year(year), 29,      
-                                                             lubridate::days_in_month(month))))) |> 
-  # filter(year >= 1980, year <= 2000) |> 
-  select(-year, -year_type, -month, -description, 
-         "Upper Sacramento River functional flow" = flow_cfs, date) |>
-  filter(!is.na(date)) 
+sr12_flow_upper_sac <- bind_rows(action_5_wet_years, replace_dry_years) |> 
+  mutate(water_year = ifelse(month(date) %in% 10:12, year(date) - 1, year(date))) |>
+    left_join(water_year_types |> 
+              select(water_year = year, year_type)) |> 
+  arrange(water_year) |> 
+  select(-month)
 
-up_sac_hydrograph_as_matrix <- synthetic_hydrograph_sac |> 
-    mutate(upsacQcms = DSMflow::cfs_to_cms(`Upper Sacramento River functional flow`),
+up_sac_hydrograph_as_matrix <- sr12_flow_upper_sac |> 
+    mutate(upsacQcms = DSMflow::cfs_to_cms(flow_cfs),
           year = year(date),
           month = month(date)) |>
     filter(year >= 1980, year <= 2000) |> 
     arrange(date, ascending = TRUE) |> 
-    select(-date, -`Upper Sacramento River functional flow`) |>
+    select(-date, -flow_cfs, -year_type, -water_year) |> 
     pivot_wider(names_from = year,
                 values_from = upsacQcms) |> 
     select(-month) |>
     as.matrix()
 rownames(up_sac_hydrograph_as_matrix) <- month.abb[1:12]
 
-usethis::use_data(synthetic_functional flow_sac, overwrite = TRUE)
+usethis::use_data(sr12_flow_upper_sac, overwrite = TRUE)
+
 synthetic_hydrograph_sac |> 
   filter(year(date) >= 1979, year(date) <= 2000) |> 
-  ggplot(aes(x = date, y = `Upper Sacramento River functional flow`)) +
+  ggplot(aes(x = date, y = `flow_cfs`)) +
   geom_line(color = "blue4") + 
   theme_minimal() +
-  labs(y = "Flow CFS", 
+  labs(y = "Flow (cfs)", 
        x = "", 
-       title = "Synthetic Model Constructed Salmonid Flows for Sacramento River") 
+       title = "SR-12 flows for Sacramento River") 
 ```
 ```{r, echo = FALSE}
 # Process data objects for use in modeling, data then used to create a scenario in transform_inputs_complete.R, source this file in transform_inputs_complete.R
