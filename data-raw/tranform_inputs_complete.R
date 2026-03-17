@@ -132,26 +132,18 @@ flow_cfs_2019_biop_itp <- flow_cfs_2019_biop_itp |>
   left_join(moke_2019) |> # add in Moke
   select(date:`Cosumnes River`, `Mokelumne River`, `Merced River`:`San Joaquin River`) # reorder
 
-# EFF run
-# Sacramento
-# Sometime flow change to eff on upper sac leads to negative flows downstream, set these to bottom out at 100 CFS
-# includes San Joaquin now
-load("data/synthetic_eff_sac.rda")
-load("data/synthetic_eff_sj.rda")
-eff_2019_biop_elsewhere <- flow_cfs_2019_biop_itp |>
-  left_join(synthetic_eff_sac) |>
-  left_join(synthetic_eff_sj) |>
-  # sacramento
-  mutate(flow_change = `Upper Sacramento River EFF` - `Upper Sacramento River`,
-         `Upper Sacramento River` = `Upper Sacramento River EFF`,
+# load sr-12 flow regime
+load("data/sr12_flow_upper_sac.rda")
+# if causing issues downstream (flow is negative), fix
+sr12_action_5 <- action_5$flows_cfs |>
+  left_join(sr12_flow_upper_sac |>
+              select(date, `Upper Sacramento River SR-12` = flow_cfs)) |>
+  mutate(flow_change = `Upper Sacramento River SR-12` - `Upper Sacramento River`,
+         `Upper Sacramento River` = `Upper Sacramento River SR-12`,
          `Upper-mid Sacramento River` = ifelse(`Upper-mid Sacramento River` + flow_change < 0, 100, `Upper-mid Sacramento River` + flow_change),
-         `Lower-mid Sacramento River1` = ifelse(`Lower-mid Sacramento River1` + flow_change < 0, 100, `Lower-mid Sacramento River1` + flow_change),
-         `Lower-mid Sacramento River2` = ifelse(`Lower-mid Sacramento River2` + flow_change < 0, 100, `Lower-mid Sacramento River2` + flow_change),
+         `Lower-mid Sacramento River` = ifelse(`Lower-mid Sacramento River` + flow_change < 0, 100, `Lower-mid Sacramento River` + flow_change),
          `Lower Sacramento River` = ifelse(`Lower Sacramento River` + flow_change < 0, 100, `Lower Sacramento River` + flow_change)) |>
-  mutate(`San Joaquin River` = `Lower San Joaquin EFF`) |>
-  select(-c(`Upper Sacramento River EFF`, flow_change, `Lower San Joaquin EFF`))
-
-View(eff_2019_biop_elsewhere)
+  select(-c(`Upper Sacramento River SR-12`, flow_change))
 
 # Add run of river
 calsim_run_of_river <- read_rds('data-raw/calsim_run_of_river/run_of_river_r2r_calsim.rds')
@@ -194,23 +186,22 @@ lto_calsim3_flows <- calsim3_data |> filter(node %in% watershed_to_nodes) |>
   pivot_wider(names_from = "watershed", values_from = "flow_cfs") |>
   mutate(date = as_date(date))
 
-# combine eff in dry years to HRL (lto) flows
-LTO_12a_eff_dy <- bind_rows(eff_2019_biop_elsewhere |>
-                              filter(year(date) %in% dry_years),
-                            lto_calsim3_flows |>
-                              filter(!year(date) %in% dry_years)) |>
+# sr-12 flows in dry years for action 5
+action_5_sr12_dy <- bind_rows(sr12_action_5 |>
+                                filter(year(date) %in% dry_years),
+                              action_5$flows_cfs |>
+                                filter(!year(date) %in% dry_years)) |>
   arrange(date)
 
 # create flow_cfs with both 2008-2009 biop and 2018-2019 biop/itp and run of river ---------------
 flows_cfs <- list(biop_2008_2009 = flows_cfs_2008_2009,
                   biop_itp_2018_2019 = flow_cfs_2019_biop_itp,
                   run_of_river = flow_cfs_run_of_river,
-                  eff = eff_2019_biop_elsewhere,
                   LTO_12a = lto_calsim3_flows,
-                  LTO_12a_eff_dy = LTO_12a_eff_dy
+                  # LTO action 5 scenario
+                  action_5 = action_5$flows_cfs,
+                  action_5_sr12_dy = action_5_sr12_dy
 )
-# LTO action 5 scenario
-flows_cfs$action_5 <- action_5$flows_cfs
 
 # Write flow cfs data object
 usethis::use_data(flows_cfs, overwrite = TRUE)
@@ -772,18 +763,16 @@ generate_mean_flow <- function(bypass_flow, flow_cfs) {
 mean_flow_2008_2009 <- generate_mean_flow(bypass_flows$biop_2008_2009, flows_cfs$biop_2008_2009)
 mean_flow_2019_biop_itp <- generate_mean_flow(bypass_flows$biop_itp_2018_2019, flows_cfs$biop_itp_2018_2019) # missing moke
 mean_flow_run_of_river <- generate_mean_flow(bypass_flows$run_of_river, flows_cfs$run_of_river) # missing moke
-mean_flow_eff <- generate_mean_flow(bypass_flows$biop_itp_2018_2019, flows_cfs$eff)
 mean_flow_lto12a <- generate_mean_flow(bypass_flows$LTO_12a, flows_cfs$LTO_12a)
-mean_flow_LTO_12a_eff_dy <- generate_mean_flow(bypass_flows$biop_itp_2018_2019, flows_cfs$LTO_12a_eff_dy)
+mean_flow_action5_sr12_dy <- generate_mean_flow(bypass_flows$action_5, flows_cfs$action_5_sr12_dy)
 
 mean_flow <- list(biop_2008_2009 = mean_flow_2008_2009,
                   biop_itp_2018_2019 = mean_flow_2019_biop_itp,
                   run_of_river = mean_flow_run_of_river,
-                  eff = mean_flow_eff,
                   LTO_12a = mean_flow_lto12a,
-                  LTO_12a_eff_dy = mean_flow_LTO_12a_eff_dy)
+                  action_5_sr12_dy = mean_flow_action5_sr12_dy)
 
-assertthat::are_equal(dimnames(mean_flow_eff), dimnames(mean_flow_lto12a))
+assertthat::are_equal(dimnames(action_5_sr12_dy), dimnames(mean_flow_lto12a))
 # LTO action 5 scenario
 # mean_flow$action_5 <- action_5$mean_flow # TODO: not yet available
 
@@ -894,20 +883,20 @@ upper_sacramento_flows_2008_2009 <- generate_upper_sacramento_flows(misc_flows$b
 upper_sacramento_flows_2019_biop_itp <- generate_upper_sacramento_flows(misc_flows$biop_itp_2018_2019)
 upper_sacramento_flows_run_of_river <- generate_upper_sacramento_flows(misc_flows$run_of_river)
 
-up_sac_flows_eff_as_matrix <- synthetic_eff_sac |>
-  mutate(upsacQcms = DSMflow::cfs_to_cms(`Upper Sacramento River EFF`),
+upper_sac_sr12_as_matrix <- sr12_flow_upper_sac |>
+  mutate(upsacQcms = DSMflow::cfs_to_cms(flow_cfs),
          year = year(date),
          month = month(date)) |>
   filter(year >= 1980, year <= 2000) |>
   arrange(date, ascending = TRUE) |>
-  select(-date, -`Upper Sacramento River EFF`) |>
+  select(-date, -flow_cfs, -year_type, -water_year) |>
   pivot_wider(names_from = year,
               values_from = upsacQcms) |>
   select(-month) |>
   as.matrix()
-rownames(up_sac_flows_eff_as_matrix) <- month.abb[1:12]
+rownames(upper_sac_sr12_as_matrix) <- month.abb[1:12]
 
-upper_sac_flows_eff <- up_sac_flows_eff_as_matrix # copied code from EFF vignette above
+upper_sac_flows_sr12 <- upper_sac_sr12_as_matrix
 
 # calsim 3
 lto_12a_upper_sacramento_flows <- calsim3_data |>
@@ -925,66 +914,24 @@ lto_12a_upper_sacramento_flows <- calsim3_data |>
 
 rownames(lto_12a_upper_sacramento_flows) <- month.abb
 
-# add in EFF flows for dry years to HRL
+# add in sr-12 flows for dry years to action 5
 dry_years_model <- dry_years[dry_years %in% 1980:2000]
 dry_years_index <- which(1980:2000 %in%dry_years_model)
-upper_sacramento_flows_LTO_12a_eff_dy <- lto_12a_upper_sacramento_flows
-upper_sacramento_flows_LTO_12a_eff_dy[, dry_years_index] <- upper_sac_flows_eff[, dry_years_index]
+upper_sacramento_flows_action5_sr12_dy <- action_5$upper_sacramento_flows
+upper_sacramento_flows_action5_sr12_dy[ , dry_years_index] <- upper_sac_flows_sr12[ , dry_years_index]
 
 upper_sacramento_flows <- list(biop_2008_2009 = upper_sacramento_flows_2008_2009,
                                biop_itp_2018_2019 = upper_sacramento_flows_2019_biop_itp,
                                run_of_river = upper_sacramento_flows_run_of_river,
-                               eff = upper_sac_flows_eff,
-                               LTO_12a = lto_12a_upper_sacramento_flows,
-                               LTO_12a_eff_dy = upper_sacramento_flows_LTO_12a_eff_dy)
+                               # LTO Action 5 Scenario
+                               action_5 = action_5$upper_sacramento_flows,
+                               action_5_sr12_dy = upper_sacramento_flows_action5_sr12_dy)
 
 
-assertthat::are_equal(dimnames(lto_12a_upper_sacramento_flows), dimnames(upper_sac_flows_eff))
-# LTO action 5 scenario
-upper_sacramento_flows$action_5 <- action_5$upper_sacramento_flows
+assertthat::are_equal(dimnames(lto_12a_upper_sacramento_flows), dimnames(action_5_sr12_dy))
 
 usethis::use_data(upper_sacramento_flows, overwrite = TRUE)
 
-# create SJ object - quick and dirty approach, just only available for use in EFF scenario
-sj_flows_eff_as_matrix <- synthetic_eff_sj |>
-  mutate(sjQcms = DSMflow::cfs_to_cms(`Lower San Joaquin EFF`),
-         year = year(date),
-         month = month(date)) |>
-  filter(year >= 1980, year <= 2000) |>
-  arrange(date, ascending = TRUE) |>
-  select(-date, -`Lower San Joaquin EFF`) |>
-  pivot_wider(names_from = year,
-              values_from = sjQcms) |>
-  select(-month) |>
-  as.matrix()
-rownames(sj_flows_eff_as_matrix) <- month.abb[1:12]
-
-san_joaquin_flows_eff <- sj_flows_eff_as_matrix # copied code from EFF vignette above
-
-# create HRL/EFF combo for dry years
-san_joaquin_flows_LTO_12a <- flows_cfs$LTO_12a |>
-  select(date, `San Joaquin River`) |>
-  mutate(sjQcms = DSMflow::cfs_to_cms(`San Joaquin River`),
-         year = year(date),
-         month = month(date)) |>
-  filter(year >= 1980, year <= 2000) |>
-  arrange(date, ascending = TRUE) |>
-  select(-date, -`San Joaquin River`) |>
-  pivot_wider(names_from = year,
-              values_from = sjQcms) |>
-  select(-month) |>
-  as.matrix()
-
-san_joaquin_flows_LTO_12a_eff_dy <- san_joaquin_flows_LTO_12a
-san_joaquin_flows_LTO_12a_eff_dy[, dry_years_index] <- san_joaquin_flows_eff[, dry_years_index]
-rownames(san_joaquin_flows_LTO_12a_eff_dy) <- month.abb
-
-san_joaquin_flows <- list(eff = san_joaquin_flows_eff,
-                          LTO_12a_eff_dy = san_joaquin_flows_LTO_12a_eff_dy)
-# LTO action 5 scenario
-san_joaquin_flows$action_5 <- action_5$san_joaquin_flows
-
-usethis::use_data(san_joaquin_flows, overwrite = TRUE)
 
 # prop flow natal --------------------------------------------------------------
 # Replaces retQ
@@ -1040,19 +987,22 @@ generate_proportion_flow_natal <- function(flow_cfs, tributary_junctions){
 proportion_flow_natal_2008_2009 <- generate_proportion_flow_natal(flows_cfs$biop_2008_2009, tributary_junctions)
 proportion_flow_natal_2019_biop_itp <- generate_proportion_flow_natal(flows_cfs$biop_itp_2018_2019, tributary_junctions)
 proportion_flow_natal_run_of_river <- generate_proportion_flow_natal(flows_cfs$run_of_river, tributary_junctions)
-proportion_flow_natal_eff <- generate_proportion_flow_natal(flows_cfs$eff, tributary_junctions)
 proportion_flow_natal_lto12a <- generate_proportion_flow_natal(lto_calsim3_flows, tributary_junctions)
-proportion_flow_natal_lto12a_eff_dy <- generate_proportion_flow_natal(flows_cfs$LTO_12a_eff_dy, tributary_junctions)
+proportion_flow_natal_action5_sr12_dy <- generate_proportion_flow_natal(flows_cfs$action_5_sr12_dy |>
+                                                                          mutate(`Lower-mid Sacramento River1` = NA) |>
+                                                                          rename(`Lower-mid Sacramento River2` = `Lower-mid Sacramento River`),
+                                                                        tributary_junctions)
 
 proportion_flow_natal <- list(biop_2008_2009 = proportion_flow_natal_2008_2009,
                               biop_itp_2018_2019 = proportion_flow_natal_2019_biop_itp,
                               run_of_river = proportion_flow_natal_run_of_river,
-                              eff = proportion_flow_natal_eff,
-                              LTO12a = proportion_flow_natal_lto12a)
+                              LTO12a = proportion_flow_natal_lto12a,
+                              # LTO action 5 scenario
+                              action_5 = action_5$proportion_flow_natal,
+                              action_5_sr12_dy = proportion_flow_natal_action5_sr12_dy
+                              )
 
-assertthat::are_equal(dimnames(proportion_flow_natal_2008_2009), dimnames(proportion_flow_natal_eff))
-# LTO action 5 scenario
-proportion_flow_natal$action_5 <- action_5$proportion_flow_natal
+assertthat::are_equal(dimnames(proportion_flow_natal_2008_2009), dimnames(proportion_flow_natal_lto12a))
 
 usethis::use_data(proportion_flow_natal, overwrite = TRUE)
 
@@ -1091,24 +1041,24 @@ proportion_pulse_flows_2008_2009 <- generate_proportion_pulse_flows(flows_cfs$bi
 proportion_pulse_flows_2019_biop_itp <- generate_proportion_pulse_flows(flows_cfs$biop_itp_2018_2019)
 proportion_pulse_flows_run_of_river <- generate_proportion_pulse_flows(flows_cfs$run_of_river)
 proportion_pulse_flows_lto_12a <- generate_proportion_pulse_flows(flows_cfs$LTO_12a)
-proportion_pulse_flows_eff <- generate_proportion_pulse_flows(flows_cfs$eff)
-proportion_pulse_flows_lto_12a_eff_dy <- generate_proportion_pulse_flows(flows_cfs$LTO_12a_eff_dy)
+proportion_pulse_flows_action5_sr12_dy <- generate_proportion_pulse_flows(flows_cfs$action_5_sr12_dy |>
+                                                                            mutate(`Lower-mid Sacramento River1` = NA) |>
+                                                                            rename(`Lower-mid Sacramento River2` = `Lower-mid Sacramento River`))
 
 proportion_pulse_flows_run_of_river[is.nan(proportion_pulse_flows_run_of_river)] <- 0
-proportion_pulse_flows_eff[is.na(proportion_pulse_flows_eff)] <- 0
 proportion_pulse_flows_lto_12a[is.na(proportion_pulse_flows_lto_12a)] <- 0
-proportion_pulse_flows_lto_12a_eff_dy[is.na(proportion_pulse_flows_lto_12a_eff_dy)] <- 0
+proportion_pulse_flows_action5_sr12_dy[is.na(proportion_pulse_flows_action5_sr12_dy)] <- 0
 
 proportion_pulse_flows <- list(biop_2008_2009 = proportion_pulse_flows_2008_2009,
                               biop_itp_2018_2019 = proportion_pulse_flows_2019_biop_itp,
                               run_of_river = proportion_pulse_flows_run_of_river,
-                              eff = proportion_pulse_flows_eff,
                               LTO_12a = proportion_pulse_flows_lto_12a,
-                              LTO_12a_eff_dy = proportion_pulse_flows_lto_12a_eff_dy)
+                              # LTO action 5 scenario
+                              action_5 = action_5$proportion_pulse_flows,
+                              action_5_sr12_dy = proportion_pulse_flows_action5_sr12_dy
+                              )
 
 assertthat::are_equal(dimnames(proportion_pulse_flows_2008_2009), dimnames(proportion_pulse_flows_lto_12a))
-# LTO action 5 scenario
-proportion_pulse_flows$action_5 <- action_5$proportion_pulse_flows
 
 usethis::use_data(proportion_pulse_flows, overwrite = TRUE)
 
