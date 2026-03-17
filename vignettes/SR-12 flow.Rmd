@@ -267,8 +267,7 @@ sr12_flow_upper_sac <- bind_rows(action_5_wet_years, replace_dry_years) |>
   mutate(water_year = ifelse(month(date) %in% 10:12, year(date) - 1, year(date))) |>
     left_join(water_year_types |> 
               select(water_year = year, year_type)) |> 
-  arrange(water_year) |> 
-  select(-month)
+  arrange(water_year)
 
 up_sac_hydrograph_as_matrix <- sr12_flow_upper_sac |> 
     mutate(upsacQcms = DSMflow::cfs_to_cms(flow_cfs),
@@ -285,7 +284,7 @@ rownames(up_sac_hydrograph_as_matrix) <- month.abb[1:12]
 
 usethis::use_data(sr12_flow_upper_sac, overwrite = TRUE)
 
-synthetic_hydrograph_sac |> 
+sr12_flow_upper_sac |> 
   filter(year(date) >= 1979, year(date) <= 2000) |> 
   ggplot(aes(x = date, y = `flow_cfs`)) +
   geom_line(color = "blue4") + 
