@@ -34,7 +34,8 @@ watershed_lookup <- c(
 )
 
 #calsim_data <- readr::read_csv("data-raw/calsim_3_action_5/calsim3-processed-all.csv")
-raw_data <- readr::read_csv("data-raw/calsim_3_action_5/SDM_Action5base_MaxProtectShasta-all-processed_v2.csv")
+raw_data <- readr::read_csv("data-raw/calsim_3_action_5/SDM_Action5base_MaxProtectShasta-all-processed_v2.csv") |>
+  mutate(datetime = datetime - days(1))
 
 raw_data |>
   filter(node %in% c("C_CSL004B", "DD_SAC017_SACS"), year(datetime) %in% 1979:2000) |>

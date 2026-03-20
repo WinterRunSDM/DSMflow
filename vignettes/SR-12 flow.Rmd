@@ -206,7 +206,7 @@ The table below shows the average differential by month (CalSim Action 5 - SR-12
 
 ```{r, echo = FALSE, warning = FALSE}
 monthly_compare_action_5 <- flows_cfs$action_5 |>
-  select(date, flow_cfs = `Upper Sacramento River`) |> 
+  select(date, flow_cfs = `Upper-mid Sacramento River`) |> 
   mutate(year = year(date),
          water_year = ifelse(month(date) %in% 10:12, year - 1, year)) |> 
   filter(water_year %in% 1980:2000) |> 
